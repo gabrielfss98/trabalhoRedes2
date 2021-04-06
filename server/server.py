@@ -14,11 +14,12 @@ def name_files(address):
     skt.sendto(name.encode(), address)
 
 def return_file(num):
-    path = f'./server/arquivo_{num}.txt'
+    path = f'arquivo_{num}.txt'
     with open(path, 'rb') as f:
         contents = f.read()
-    print('Enviando arquivo')
+    print(f'Enviando arquivo {num} ...')
     skt.sendto(contents, address)
+    print('Arquivo enviado !')
         
 while True:
     print('Aguardando requisições ...')
@@ -32,7 +33,6 @@ while True:
         file_name = skt.recvfrom(4096)
         # convertendo bytes para string
         file_name = file_name[0].decode('utf-8')
-        print(f'Arquivo selecionado {str(file_name)}')
         # recuperando o arquivo selecionado
         try:
             return_file(file_name)
