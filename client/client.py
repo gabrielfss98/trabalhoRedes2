@@ -1,2 +1,3 @@
 import socket
+print('teste')
 
