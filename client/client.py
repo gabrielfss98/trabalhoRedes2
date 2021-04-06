@@ -12,6 +12,7 @@ class Client:
     
     # envia o número correspondente ao aqruivo desejado
     def send_data(self, num):
+        teste = ''
         try:
             # enviado solicitação
             print(f'Solicitando arquivo {num} ')
