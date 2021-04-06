@@ -1,7 +1,8 @@
 import socket
 
 skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)   #Socket UDP
-server_address = (socket.gethostname(), 1998)     #Ip do servidor
+server_address = ('localhost', 1998)     #Ip do servidor
+skt.sendto(b'archives', server_address)
 message = b'getArquivo'
 try:
     print(f'Enviando mensagem: {message}')
