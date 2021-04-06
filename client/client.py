@@ -18,11 +18,11 @@ class Client:
             print(f'Solicitando arquivo {num} ')
             sent = self.socket.sendto(num, self.server_adress)
             # recebendo resposta
-            self.data, self.server = self.socket.recvfrom(1000000)
+            self.data, self.server = self.socket.recvfrom(4096)
             print(f'{self.data} recebidos ')
         finally:
             self.socket.close()
             
-c = Client('localhost', 10000)
+c = Client('localhost', 1998)
 c.send_data(b'thanks')
 

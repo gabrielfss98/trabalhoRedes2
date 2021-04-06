@@ -1,7 +1,7 @@
 import socket
 
 skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Socket UDP
-server_address = (socket.gethostname(), 1998)   # IP do servidor e porta de comunicação
+server_address = ('localhost', 1998)   # IP do servidor e porta de comunicação
 print(f'IP dos servidor: {server_address[0]}, Porta: {server_address[1]}')
 skt.bind(server_address)
 
