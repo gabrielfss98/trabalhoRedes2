@@ -17,34 +17,26 @@ class Client:
     def request_file(self):
         buffer_size = 8
         print('Digite o número do arquivo')
-        file_name = str(input())
+        file_number = str(input())
         try:
-            # enviado solicitação
-            print(f'Solicitando arquivo {file_name} ')
-            sent = self.socket.sendto(file_name.encode(), self.server_adress)
-            # recebendo resposta
-
-            self.file, self.server = self.socket.recvfrom(4096)
+            # enviado solicitação (número do arquivo)
+            print(f'Solicitando arquivo {file_number} ')
+            sent = self.socket.sendto(file_number.encode(), self.server_adress)
+            # recebendo resposta (nome e tamanho do arquivo)
+            self.file, self.server = self.socket.recvfrom(4096) #resposta do servidor
             self.file = self.file.decode('utf-8')
-            file = self.file.split('~')[0]
-            filesize = int(self.file.split('~')[1])
+            file_name = self.file.split('~')[0]    #nome do arquivo
+            filesize = int(self.file.split('~')[1])   #tamanho do arquivo
+
             progress = tqdm.tqdm(range(filesize), f"Receiving {file_name}", unit="B", unit_scale=True, unit_divisor=1024, colour='green')
             with open(file_name, "w") as f:
                 while True:
-                # read 1024 bytes from the socket (receive)
-                    bytes_read, add = self.socket.recvfrom(buffer_size)
+                    bytes_read, add = self.socket.recvfrom(buffer_size)  #recebe o arquivo em pacotes
                     progress.update(len(bytes_read))
                     if bytes_read == b'end_file':
-                        print('fim')
                         break
                     f.write(bytes_read.decode('utf-8'))
 
-            #self.file, self.server = self.socket.recvfrom(4096)
-
-            #with open(name_file, 'w') as arq:
-                #arq.write(file_content)
-            #print('\n')
-            #print(f'{self.file}')
         finally:
             self.socket.close()
     

@@ -25,26 +25,20 @@ def return_file(num):
     buffer_size = 8
     path = f'arquivo_{num}.txt'
     filesize = os.path.getsize(path)
-    f = path + '~' + str(filesize)
-    skt.sendto(f.encode(), address)
-    progress = tqdm.tqdm(range(filesize), f"Sending {path}", unit="B", unit_scale=True, unit_divisor=1024, colour='green')
+    f = path + '~' + str(filesize)   #nome do arquivo e tamanho
+    skt.sendto(f.encode(), address)   #envia para o cliente
+    print(f'Enviando {path} ...')
+    #progress = tqdm.tqdm(range(filesize), f"Sending {path}", unit="B", unit_scale=True, unit_divisor=1024, colour='green')
     
     with open(path, 'rb') as f:
         while True:
             bytes_read = f.read(buffer_size)
-            progress.update(len(bytes_read))
             if not bytes_read:
-                skt.sendto(b'end_file', address)
-                # file transmitting is done
+                skt.sendto(b'end_file', address)  #mensagem de fim de arquivo
                 break
-        # we use sendall to assure transimission in 
-        # busy networks
-            skt.sendto(bytes_read, address)
-            # update the progress bar
-        #contents = f.read()
-    #file_name_content = path + '~' + contents
-    #print(f'Enviando arquivo {num} ...')
-    #skt.sendto(file_name_content.encode(), address)
+
+            skt.sendto(bytes_read, address)   #envia o arquivo em pacotes
+            #progress.update(len(bytes_read))
     print('Arquivo enviado !')
         
 while True:
@@ -53,17 +47,16 @@ while True:
     print(f'Recebidos {len(data)} bytes de {address}')
     # se a mensagem recebida for 'archieves' mostra os arquivos disponíveis
     if data == b'archieves':
-        name_files(address)
-        # fica esperando uma resposta
+        name_files(address)  #mostra os arquivos para o cliente
         print('Esperando arquivo ser selecionado...')
-        file_name = skt.recvfrom(4096)
+        file_number = skt.recvfrom(4096)
         # convertendo bytes para string
-        file_name = file_name[0].decode('utf-8')
+        file_number = file_number[0].decode('utf-8')
         # recuperando o arquivo selecionado
-        #try:
-        return_file(file_name)
-        #except:
-            #print('file error')   
+        try:
+            return_file(file_number)  #retorna o conteúdo do arquivo
+        except:
+            print('file error')   
     else:
         skt.sendto(b'ACK', address)
         print(f'ACK enviado para {address}')
