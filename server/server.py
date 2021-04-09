@@ -1,6 +1,7 @@
 import socket
 import os
 import tqdm
+import hashlib
 
 skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Socket UDP
 server_address = ('localhost', 1998)   # IP do servidor e porta de comunicação
@@ -30,20 +31,24 @@ def return_file(num):
     print(f'Enviando {path} ...')
     #progress = tqdm.tqdm(range(filesize), f"Sending {path}", unit="B", unit_scale=True, unit_divisor=1024, colour='green')
     
-    with open(path, 'rb') as f:
+    with open(path, 'r') as f:
         while True:
-            bytes_read = f.read(buffer_size)
+            packet_read = f.read(buffer_size)
+            bytes_read = packet_read.encode()
+            cheksum = sum(bytes_read)
+            segment = str(cheksum) + '/' + packet_read
             if not bytes_read:
                 skt.sendto(b'end_file', address)  #mensagem de fim de arquivo
                 break
-
-            skt.sendto(bytes_read, address)   #envia o arquivo em pacotes
+            
+            skt.sendto(segment.encode(), address)   #envia o arquivo em pacotes
             #progress.update(len(bytes_read))
     print('Arquivo enviado !')
         
 while True:
     print('Aguardando requisições ...')
     data, address = skt.recvfrom(4096)
+    
     print(f'Recebidos {len(data)} bytes de {address}')
     # se a mensagem recebida for 'archieves' mostra os arquivos disponíveis
     if data == b'archieves':

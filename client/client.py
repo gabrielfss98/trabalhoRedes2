@@ -15,7 +15,7 @@ class Client:
     
     # envia o número correspondente ao aqruivo desejado
     def request_file(self):
-        buffer_size = 8
+        buffer_size = 15
         print('Digite o número do arquivo')
         file_number = str(input())
         try:
@@ -31,11 +31,20 @@ class Client:
             progress = tqdm.tqdm(range(filesize), f"Receiving {file_name}", unit="B", unit_scale=True, unit_divisor=1024, colour='green')
             with open(file_name, "w") as f:
                 while True:
-                    bytes_read, add = self.socket.recvfrom(buffer_size)  #recebe o arquivo em pacotes
-                    progress.update(len(bytes_read))
-                    if bytes_read == b'end_file':
+                    segment, add = self.socket.recvfrom(1460)  #recebe o arquivo em pacotes
+                    segment = segment.decode('utf-8')
+                    if '/' in segment:        #segmento padrão
+                        cheksum_server = segment.split('/')[0]
+                        data_read = segment.split('/')[1]
+                        cheksum_client = sum(data_read.encode())
+                        if cheksum_client != int(cheksum_server):
+                            print('ERRO DE BIT !!')
+                    else:                      #mensagem de fim de arquivo
+                        data_read = segment
+                    if data_read == 'end_file':
                         break
-                    f.write(bytes_read.decode('utf-8'))
+                    progress.update(len(data_read.encode()))
+                    f.write(data_read)
 
         finally:
             self.socket.close()
