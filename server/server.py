@@ -23,7 +23,7 @@ def name_files(address):
     skt.sendto(name.encode(), address)
 
 def return_file(num):
-    buffer_size = 8
+    buffer_size = 100
     path = f'arquivo_{num}.txt'
     filesize = os.path.getsize(path)
     f = path + '~' + str(filesize)   #nome do arquivo e tamanho
@@ -65,6 +65,7 @@ def return_file(num):
             # quando o tamanho da lista é igual a janela
             if len(packet_list) == window_size:
                 # envia todos os pacotes da lista
+                packet_list[6] = '96/errado'
                 for i in range(len(packet_list)):
                     skt.sendto(packet_list[i].encode(), address)   #envia o arquivo em pacotes
                 # esperando ACK
@@ -74,8 +75,10 @@ def return_file(num):
                 # reenvia a partir do índice recebido no ack
                 if ack != 'ok':
                     index = int(ack)
-                    for index in range(len(packet_list)):
-                        skt.sendto(packet_list[index].encode(), address)
+                    packet_list[index] = '6/oi'
+                    for i in range(index, window_size):
+                        print(f'Reenviando pacote {i} ...')
+                        skt.sendto(packet_list[i].encode(), address)
                     # lista a lista e zera o contador
                     packet_list.clear()
                     packet_n = 0 
@@ -105,6 +108,7 @@ while True:
             # print('file error')   
     else:
         skt.sendto(b'ACK', address)
-        print(f'ACK enviado para {address}')
+        #print(f'ACK enviado para {address}')
+        print(data)
 
     print('\n\n')
