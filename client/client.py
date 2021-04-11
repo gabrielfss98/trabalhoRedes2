@@ -63,6 +63,14 @@ class Client:
                             packet_number.clear()
                             for i in range(len(packet_list)):
                                 packet_number.append(i)
+                            # recebendo os pacotes
+                            n = window_size - ack
+                            for i in range(n):
+                                segment, add = self.socket.recvfrom(1460)  #recebe o arquivo em pacotes
+                                segment = segment.decode('utf-8')
+                                packet_list.append()
+                                packet_number.append(int(segment.split('/')[0])) 
+                                packet_list.append(segment.split('/')[1])
                         else:
                             # caso não existe erro, escreve os pacotes no arquivo   
                             for i in packet_list:
