@@ -30,77 +30,82 @@ class Client:
 
             progress = tqdm.tqdm(range(filesize), f"Receiving {file_name}", unit="B", unit_scale=True, unit_divisor=1024, colour='green')
             # variáveis para guardar os pacotes
-            packet_number = list()
-            packet_list = list()
-            # tamanho da janela
+            packet_number = list()   # buffer
+            packet_list = list()     # buffer
             window_size = 10
             with open(file_name, "w") as f:
                 while True:
                     segment, add = self.socket.recvfrom(1460)  #recebe o arquivo em pacotes
                     segment = segment.decode('utf-8')
-                    # se o segmento recebido é de final de arquivo 
-                    if segment == 'end_file':
-                        # se existe alguma coisa na lista escreve
-                        if len(packet_list) > 0:
-                            for i in packet_list:
-                                k = f.write(i)
-                                progress.update(k)
+                    if segment == 'end_file': # fim da transimissão
+                        if len(packet_list) > 0:  # ainda há pacotes no buffer
+                            n = len(packet_list)
+                            #packet_number[4] = 86
+                            #print(f'Pacotes sobrando: {n}')
+                            ack = self.check_error(packet_number)  # checa se houve erro
+                            retorno = self.check_ack(ack, packet_list, packet_number, n, f, progress)
+                            packet_list = retorno[0]  
+                            packet_number = retorno[1] 
                         break
-                    # salva o pacote e o número de listas
+                    # armazena o pacote e seu número em um buffer
                     packet_number.append(int(segment.split('/')[0])) 
                     packet_list.append(segment.split('/')[1])
                     # quando uma janela completa é recebida
                     if len(packet_list) == window_size:
-                        # verifica se existem pacotes faltando
-                        ack = self.check_ack(packet_number)
-                        if ack != 'ok':
-                            ack = str(ack)
-                            # manda o índice do pacote errado
-                            self.socket.sendto(ack.encode(), self.server_adress)
-                            # elimina todos os pacotes a partir do primeiro errado
-                            ack = int(ack)
-                            packet_list = packet_list[:ack]
-                            # recupera os números dos pacotes certos
-                            # TEM QUE MUDAR, CASO OS NÚMEROS NÃO SEJAM SO DE 0 A 9
-                            packet_number.clear()
-                            for i in range(len(packet_list)):
-                                packet_number.append(i)
-                            
-                            for i in range(window_size - ack):
-                                packet = self.socket.recvfrom(1460)[0]
-                                number = packet.decode('utf-8').split('/')[0]
-                                packet_number.append(number)
-                                packet = packet.decode('utf-8').split('/')[1]
-                                packet_list.append(packet)
-                            
-                            for i in packet_list:
-                                a = f.write(i)
-                                progress.update(a)
-                            # limpa as listas para a proxima janela
-                            packet_list.clear()
-                            packet_number.clear() 
-
-
-                            
-                        else:
-                            # caso não existe erro, escreve os pacotes no arquivo   
-                            for i in packet_list:
-                                a = f.write(i)
-                                progress.update(a)
-                            # limpa as listas para a proxima janela
-                            packet_list.clear()
-                            packet_number.clear() 
-                        # envia ack 'ok'  
+                        #packet_number[4] = 86
+                        # verifica se existem pacotes faltando ou pacotes fora de ordem
+                        ack = self.check_error(packet_number)
+                        retorno = self.check_ack(ack, packet_list, packet_number, window_size, f, progress) 
+                        packet_list = retorno[0]  
+                        packet_number = retorno[1]                                
                                  
         finally:
             self.socket.close()
     
-    def check_ack(self, packet_number):
+    def check_error(self, packet_number):   # verifica se houve erro na transmissão
         for i in range(len(packet_number)- 1):
             if packet_number[i + 1] != packet_number[i] + 1:
                 #print('erro no pacote da posição ', i+1)
                 return i + 1
         return 'ok'
+
+    def check_ack(self, ack, packet_list, packet_number, n, f, progress):
+        if ack != 'ok':    # transmissão com erro
+            ack = str(ack)
+            # manda o índice do pacote errado
+            self.socket.sendto(ack.encode(), self.server_adress)
+            # elimina todos os pacotes a partir do primeiro errado
+            ack = int(ack)
+            packet_list = packet_list[:ack]
+            # recupera os números dos pacotes certos
+            packet_number.clear()
+            for i in range(len(packet_list)):
+                packet_number.append(i)
+                            
+            for i in range(n - ack):
+                packet = self.socket.recvfrom(1460)[0]   # recebe novamente os pacotes
+                number = packet.decode('utf-8').split('/')[0]
+                packet_number.append(number)
+                packet = packet.decode('utf-8').split('/')[1]
+                packet_list.append(packet)
+                            
+            for i in packet_list:
+                a = f.write(i)
+                progress.update(a)
+                # limpa as listas para a proxima janela
+            packet_list.clear()
+            packet_number.clear() 
+                         
+        else:   # transmissão OK
+            self.socket.sendto(ack.encode(), self.server_adress)
+            # caso não existe erro, escreve os pacotes no arquivo   
+            for i in packet_list:
+                a = f.write(i)
+                progress.update(a)
+            # limpa as listas para a proxima janela
+            packet_list.clear()
+            packet_number.clear()
+        return packet_list, packet_number 
     
     def see_files(self):
         try:
@@ -119,4 +124,3 @@ class Client:
 c = Client('localhost', 1998)
 c.see_files()
 c.request_file()
-#c.send_data(b'archieves')

@@ -52,20 +52,20 @@ def return_file(num):
                     # envia mensagem de fim de arquivo
                     skt.sendto(b'end_file', address)
                     break
-                # caso o arquivo tenha acabado e a lista é menor que o tamanho da janela
-                # AINDA PRECISA TRATAR O CASO QUE O RESTANTE DA LISTA FALHE E PESSA REENVIO
-                else:
+                else:  # o arquivo acabou, mas ainda há segmentos no buffer
                     packet_list.pop()
                     # envia que resta na lista
                     for i in range(len(packet_list)):
                         skt.sendto(packet_list[i].encode(), address) 
-                    skt.sendto(b'end_file', address) 
+                    skt.sendto(b'end_file', address)
+                    ack = skt.recvfrom(1496)[0]
+                    ack = ack.decode()
+                    check_ack(ack, window_size, address, packet_list, packet_n)
                     break
                 
             # quando o tamanho da lista é igual a janela
             if len(packet_list) == window_size:
                 # envia todos os pacotes da lista
-                packet_list[6] = '96/errado'
                 for i in range(len(packet_list)):
                     skt.sendto(packet_list[i].encode(), address)   #envia o arquivo em pacotes
                 # esperando ACK
@@ -73,22 +73,28 @@ def return_file(num):
                 ack = ack.decode()
                 # se o ack contém um número significa que occoru um erro 
                 # reenvia a partir do índice recebido no ack
-                if ack != 'ok':
-                    index = int(ack)
-                    packet_list[index] = '6/oi'
-                    for i in range(index, window_size):
-                        print(f'Reenviando pacote {i} ...')
-                        skt.sendto(packet_list[i].encode(), address)
-                    # lista a lista e zera o contador
-                    packet_list.clear()
-                    packet_n = 0 
-                else:
-                    packet_n = 0
-                    packet_list.clear()
-                    
-            #progress.update(len(bytes_read))
+                check_ack(ack,window_size, address, packet_list, packet_n)
     print('Arquivo enviado !')
-        
+
+
+def check_ack(ack, window_size, address,packet_list,packet_n):
+    if ack != 'ok':
+        index = int(ack)
+        #packet_list[index] = '1/oi'
+        if len(packet_list) == window_size:
+            n = window_size
+        else:
+            n = len(packet_list)
+        for i in range(index, n):
+            print(f'Reenviando pacote {i} ...')
+            skt.sendto(packet_list[i].encode(), address)
+            # lista a lista e zera o contador
+        packet_list.clear()
+        packet_n = 0 
+    else:
+        packet_n = 0
+        packet_list.clear()
+
 while True:
     print('Aguardando requisições ...')
     data, address = skt.recvfrom(4096)
