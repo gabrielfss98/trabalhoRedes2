@@ -3,12 +3,7 @@ import os
 import tqdm
 import hashlib
 
-skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Socket UDP
-server_address = ('localhost', 1998)   # IP do servidor e porta de comunicação
-print(f'IP dos servidor: {server_address[0]}, Porta: {server_address[1]}')
-skt.bind(server_address)
-
-
+# Função que retorno o nome dos arquivos
 def name_files(address):
     files = os.listdir() # todos os arquivos no diretório
     names = []
@@ -22,6 +17,7 @@ def name_files(address):
     
     skt.sendto(name.encode(), address)
 
+# Retorna o arquivo selecionado, com base no número de indentificação do arquivo
 def return_file(num):
     buffer_size = 100
     path = f'arquivo_{num}.txt'
@@ -76,7 +72,7 @@ def return_file(num):
                 check_ack(ack,window_size, address, packet_list, packet_n)
     print('Arquivo enviado !')
 
-
+# Verifica o ACK emitido pelo cliente
 def check_ack(ack, window_size, address,packet_list,packet_n):
     if ack != 'ok':
         index = int(ack)
@@ -95,6 +91,20 @@ def check_ack(ack, window_size, address,packet_list,packet_n):
         packet_n = 0
         packet_list.clear()
 
+
+# ---------------------------------- MAIN ------------------------------------------ #
+
+# Busca o ip da maquina cliente para abrir o socket
+hostName = socket.gethostname()
+ipAddress = socket.gethostbyname(hostName)
+
+# Define o Socket e abre a porta especificada
+skt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Socket UDP
+server_address = (ipAddress, 1998)   # IP do servidor e porta de comunicação
+print(f'IP dos servidor: {server_address[0]}, Porta: {server_address[1]}')
+skt.bind(server_address)
+
+# loop do servidor para escutar as requisições
 while True:
     print('Aguardando requisições ...')
     data, address = skt.recvfrom(4096)

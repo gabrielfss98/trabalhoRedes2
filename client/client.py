@@ -120,7 +120,14 @@ class Client:
                 print(i)
         except :
             print('erro see_files')
-            
-c = Client('localhost', 1998)
+
+########## MAIN ##########
+
+# Busca o ip da maquina cliente para abrir o socket
+hostName = socket.gethostname()
+ipAddress = socket.gethostbyname(hostName)
+
+# instancia o cliente com o ip e porta definida
+c = Client(ipAddress, 1998)
 c.see_files()
 c.request_file()
