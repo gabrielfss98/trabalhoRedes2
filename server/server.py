@@ -5,7 +5,7 @@ import hashlib
 
 window_size = 1
 retransmitted = 0
-
+number_packets = 0
 # Função que retorno o nome dos arquivos
 def name_files(address):
     files = os.listdir() # todos os arquivos no diretório
@@ -22,7 +22,11 @@ def name_files(address):
 
 # Retorna o arquivo selecionado, com base no número de indentificação do arquivo
 def return_file(num):
-    buffer_size = 100
+    global retransmitted
+    retransmitted = 0
+    global number_packets
+    number_packets = 0
+    buffer_size = 1439
     path = f'arquivo_{num}.txt'
     filesize = os.path.getsize(path)
     f = path + '~' + str(filesize)   #nome do arquivo e tamanho
@@ -35,6 +39,7 @@ def return_file(num):
         while True:
             packet_read = f.read(buffer_size)    # Máximo de 1439 bytes
             bytes_read = packet_read.encode()
+            number_packets += 1
             if(len(str(packet_n).encode()) >= 20):   # Número de seq atingiu o limite de 20 bytes
                 packet_n = 0
             # adiciona o número do pacote 
@@ -77,6 +82,7 @@ def return_file(num):
                 check_ack(ack,window_size, address, packet_list, packet_n)
     print('Arquivo enviado !')
     print(f'Total de pacotes retransmitidos: {retransmitted}')
+    print(f'Total de pacotes: {number_packets}')
 
 # Verifica o ACK emitido pelo cliente
 def check_ack(ack, window_size, address,packet_list,packet_n):

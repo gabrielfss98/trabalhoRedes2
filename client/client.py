@@ -10,14 +10,25 @@ class Client:
         self.server = None
         self.file = None
         self.window_size = window_size
+        self.files_received = []
         # criando socket
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     
     # envia o número correspondente ao aqruivo desejado
     def request_file(self):
-        print('Digite o número do arquivo')
-        file_number = str(input())
+        control = False
+        while control == False:
+            print('Digite o número do arquivo')
+            file_number = str(input())
+            for file in self.files_received:
+                if '_' in file:
+                    file = file.split('_')[1]
+                    if file_number in file:
+                        control = True
+            if control == False:
+                print('O arquivo selecionado não é válido!')
+
         while True:
             print('Informe a senha: ')
             senha = input()
@@ -57,9 +68,9 @@ class Client:
                     # armazena o pacote e seu número em um buffer
                     packet_number.append(int(segment.split('/')[0])) 
                     packet_list.append(segment.split('/')[1])
-                    # quando uma janela completa é recebida
+                    # quando uma janela completa é recebidas
                     if len(packet_list) == self.window_size:
-                        packet_number[4] = 999999
+                        packet_number[1] = 999999
                         # verifica se existem pacotes faltando ou pacotes fora de ordem
                         ack = self.check_error(packet_number)
                         retorno = self.check_ack(ack, packet_list, packet_number, self.window_size, f, progress) 
@@ -130,6 +141,7 @@ class Client:
             # imprimindo o nome dos arquivos 
             for i in files:
                 print(i)
+                self.files_received.append(i)
         #except :
             #print('erro see_files')
 
@@ -140,6 +152,7 @@ hostName = socket.gethostname()
 ipAddress = socket.gethostbyname(hostName)
 
 # instancia o cliente com o ip e porta definida
-c = Client('192.168.0.103', 1998, 5)
+# Ip Máquina virtual: 192.168.56.101
+c = Client(ipAddress, 1998, 10)
 c.see_files()
 c.request_file()

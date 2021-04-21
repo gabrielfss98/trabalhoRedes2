@@ -1,0 +1,15 @@
+Se a execução cliente-servidor for na mesma máquina:
+1) Para executar o servidor, abra um terminal no diretório server e digite python server.py
+2) Para executar o clinte, abra um terminal no diretório client e digite python client.py
+
+
+Se o servidor estiver em máquina virtual, será necessário editar o código e mudar o IP
+1) No programa server, coloque o IP da máquina virtual na linha 118
+	server_address = (IP, 1998)
+2) No programa client, coloque o mesmo IP utilizado no server na linha 156
+3) Execute via terminal
+
+
+OBS: caso apareça o seguinte erro: tqdm não reconhecido
+1) abra o terminal e digite: pip install tqdm
+	
