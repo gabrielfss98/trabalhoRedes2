@@ -4,26 +4,34 @@ import tqdm
 
 class Client:
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, window_size):
         self.server_adress = (host, port)
         self.data = None
         self.server = None
         self.file = None
+        self.window_size = window_size
         # criando socket
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     
     # envia o número correspondente ao aqruivo desejado
     def request_file(self):
-        buffer_size = 15
         print('Digite o número do arquivo')
         file_number = str(input())
+        while True:
+            print('Informe a senha: ')
+            senha = input()
+            if senha == 'gabriel98':
+                break
+            else:
+                print('Senha incorreta !')
+
         try:
             # enviado solicitação (número do arquivo)
             print(f'Solicitando arquivo {file_number} ')
             sent = self.socket.sendto(file_number.encode(), self.server_adress)
             # recebendo resposta (nome e tamanho do arquivo)
-            self.file, self.server = self.socket.recvfrom(4096) #resposta do servidor
+            self.file, self.server = self.socket.recvfrom(1460) #resposta do servidor
             self.file = self.file.decode('utf-8')
             file_name = self.file.split('~')[0]    #nome do arquivo
             filesize = int(self.file.split('~')[1])   #tamanho do arquivo
@@ -32,7 +40,6 @@ class Client:
             # variáveis para guardar os pacotes
             packet_number = list()   # buffer
             packet_list = list()     # buffer
-            window_size = 10
             with open(file_name, "w") as f:
                 while True:
                     segment, add = self.socket.recvfrom(1460)  #recebe o arquivo em pacotes
@@ -51,18 +58,22 @@ class Client:
                     packet_number.append(int(segment.split('/')[0])) 
                     packet_list.append(segment.split('/')[1])
                     # quando uma janela completa é recebida
-                    if len(packet_list) == window_size:
-                        #packet_number[4] = 86
+                    if len(packet_list) == self.window_size:
+                        packet_number[4] = 999999
                         # verifica se existem pacotes faltando ou pacotes fora de ordem
                         ack = self.check_error(packet_number)
-                        retorno = self.check_ack(ack, packet_list, packet_number, window_size, f, progress) 
+                        retorno = self.check_ack(ack, packet_list, packet_number, self.window_size, f, progress) 
                         packet_list = retorno[0]  
-                        packet_number = retorno[1]                                
+                        packet_number = retorno[1]
+
+
+                                                       
                                  
         finally:
             self.socket.close()
     
     def check_error(self, packet_number):   # verifica se houve erro na transmissão
+        #print(packet_number)
         for i in range(len(packet_number)- 1):
             if packet_number[i + 1] != packet_number[i] + 1:
                 #print('erro no pacote da posição ', i+1)
@@ -81,11 +92,11 @@ class Client:
             packet_number.clear()
             for i in range(len(packet_list)):
                 packet_number.append(i)
-                            
+  
             for i in range(n - ack):
                 packet = self.socket.recvfrom(1460)[0]   # recebe novamente os pacotes
                 number = packet.decode('utf-8').split('/')[0]
-                packet_number.append(number)
+                packet_number.append(int(number))
                 packet = packet.decode('utf-8').split('/')[1]
                 packet_list.append(packet)
                             
@@ -108,18 +119,19 @@ class Client:
         return packet_list, packet_number 
     
     def see_files(self):
-        try:
-            sent = self.socket.sendto(b'archieves', self.server_adress)
+        #try:
+            message = str(self.window_size) + '/' + 'archives'
+            sent = self.socket.sendto(message.encode(), self.server_adress)
             # recebendo resposta
-            self.data, self.server = self.socket.recvfrom(4096)
+            self.data, self.server = self.socket.recvfrom(1460)
             print('Arquivos disponíveis para download: ')
             # convertendo bytes para txt
             files = self.data.decode('utf-8').split(' ')
             # imprimindo o nome dos arquivos 
             for i in files:
                 print(i)
-        except :
-            print('erro see_files')
+        #except :
+            #print('erro see_files')
 
 ########## MAIN ##########
 
@@ -128,6 +140,6 @@ hostName = socket.gethostname()
 ipAddress = socket.gethostbyname(hostName)
 
 # instancia o cliente com o ip e porta definida
-c = Client(ipAddress, 1998)
+c = Client('192.168.0.103', 1998, 5)
 c.see_files()
 c.request_file()

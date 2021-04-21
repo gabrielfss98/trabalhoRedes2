@@ -3,6 +3,9 @@ import os
 import tqdm
 import hashlib
 
+window_size = 1
+retransmitted = 0
+
 # Função que retorno o nome dos arquivos
 def name_files(address):
     files = os.listdir() # todos os arquivos no diretório
@@ -25,15 +28,17 @@ def return_file(num):
     f = path + '~' + str(filesize)   #nome do arquivo e tamanho
     skt.sendto(f.encode(), address)   #envia para o cliente
     print(f'Enviando {path} ...')
-    window_size = 10
+
     packet_list = list()
     packet_n = 0
     with open(path, 'r') as f:
         while True:
-            packet_read = f.read(buffer_size)
+            packet_read = f.read(buffer_size)    # Máximo de 1439 bytes
             bytes_read = packet_read.encode()
+            if(len(str(packet_n).encode()) >= 20):   # Número de seq atingiu o limite de 20 bytes
+                packet_n = 0
             # adiciona o número do pacote 
-            segment = str(packet_n) + '/' + packet_read
+            segment = str(packet_n) + '/' + packet_read   # Num_seq/dados: máximo de 1460 bytes
             # TALVEZ MUDAR PARA NÚMEROS QUE N SE REPETEM
             packet_n += 1
             # salva o pacote na lista
@@ -54,7 +59,7 @@ def return_file(num):
                     for i in range(len(packet_list)):
                         skt.sendto(packet_list[i].encode(), address) 
                     skt.sendto(b'end_file', address)
-                    ack = skt.recvfrom(1496)[0]
+                    ack = skt.recvfrom(1460)[0]
                     ack = ack.decode()
                     check_ack(ack, window_size, address, packet_list, packet_n)
                     break
@@ -71,6 +76,7 @@ def return_file(num):
                 # reenvia a partir do índice recebido no ack
                 check_ack(ack,window_size, address, packet_list, packet_n)
     print('Arquivo enviado !')
+    print(f'Total de pacotes retransmitidos: {retransmitted}')
 
 # Verifica o ACK emitido pelo cliente
 def check_ack(ack, window_size, address,packet_list,packet_n):
@@ -82,13 +88,16 @@ def check_ack(ack, window_size, address,packet_list,packet_n):
         else:
             n = len(packet_list)
         for i in range(index, n):
-            print(f'Reenviando pacote {i} ...')
+            packet = packet_list[i].split('/')[0]
+            print(f'Reenviando pacote {packet}, indice {i} ...')
+            global retransmitted
+            retransmitted += 1
             skt.sendto(packet_list[i].encode(), address)
             # lista a lista e zera o contador
         packet_list.clear()
-        packet_n = 0 
+        #packet_n = 0 
     else:
-        packet_n = 0
+        #packet_n = 0
         packet_list.clear()
 
 
@@ -107,14 +116,15 @@ skt.bind(server_address)
 # loop do servidor para escutar as requisições
 while True:
     print('Aguardando requisições ...')
-    data, address = skt.recvfrom(4096)
+    data, address = skt.recvfrom(1460)
     
     print(f'Recebidos {len(data)} bytes de {address}')
     # se a mensagem recebida for 'archieves' mostra os arquivos disponíveis
-    if data == b'archieves':
+    if b'archives' in data:
+        window_size = int(data.decode().split('/')[0])
         name_files(address)  #mostra os arquivos para o cliente
         print('Esperando arquivo ser selecionado...')
-        file_number = skt.recvfrom(4096)
+        file_number = skt.recvfrom(1460)
         # convertendo bytes para string
         file_number = file_number[0].decode('utf-8')
         # recuperando o arquivo selecionado
